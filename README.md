@@ -1,13 +1,16 @@
 # photon-metronome
 Say hello to your new on-stage friend: a wireless metronome that syncs to MIDI signals!
 
+## Why?
+Sometimes it's hard to hear on stage. Sound checks may be rushed, and when singing to a background track, timing is crucial. Even in a hall with muddy sound or inadequate monitors, this wireless metronome can help keep people in sync—at the speed of light.
+
 ## Setup
 The project uses:
 * a [Particle Photon Wi-Fi Microprocessor](https://store.particle.io/products/photon) (formerly called Spark Core) as the [IOT](https://en.wikipedia.org/wiki/Internet_of_things) wireless device
 * a computer running [Abelton Live](https://www.ableton.com/en/live/) or similar software for sending [MIDI](https://en.wikipedia.org/wiki/MIDI) signals
 * a physical router connecting the two (internet is not required)
 * a virtual MIDI device, e.g. using Apple's built in IAC driver ([Inter Application Communication](https://developer.apple.com/legacy/library/documentation/mac/pdf/Interapplication_Communication/Intro_to_IAC.pdf)) which part of Audio MIDI Setup in Utilities
-* * A [Processing](https://processing.org) script which listens to the MIDI signals and sends them to the IOT device over Wi-Fi
+* A [Processing](https://processing.org) script which listens to the MIDI signals and sends them to the IOT device over Wi-Fi
 
 ## Demos
 ### 2017-08-15 Visual Metronome Prototype with Ableton Live
