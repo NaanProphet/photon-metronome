@@ -1,5 +1,5 @@
 //This application listens for MIDI Clock and CC messages on its
-//MIDI input, and uses them to send UDP messages to a Spark Core
+//MIDI input, and uses them to send UDP messages to a Particle
 //board to set the colour and brightness of the onboard RGB LED.
 
 //Original with gratitude from:
@@ -25,7 +25,7 @@ import hypermedia.net.*;
 
 //Create a MIDI bus object for receiving MIDI data
 MidiBus midiBus;
-//Create a UDP object for sending UDP messages to the Spark Core board
+//Create a UDP object for sending UDP messages to the Particle device
 UDP udp;
 //Font variable for user interface
 PFont f;
@@ -33,13 +33,13 @@ PFont f;
 //Config values
 private static final String CONFIG_FILE = "config.properties";
 private static final String KEY_MIDI_PORT_NAME = "virtual.midi.port.name";
-private static final String KEY_PARTICLE_CORE_IP = "spark.core.ip.address";
+private static final String KEY_PARTICLE_DEVICE_IP = "particle.device.ip.address";
 private static final String KEY_PARTICLE_UDP_PORT = "udpPort";
 private static final String KEY_MIDI_CC_PROP_NAME_PREFIX = "prefix.cc.signal.property";
 private static final String KEY_STANDBY_LED_COLOR = "standby.led.color";
 
 private String midiInput;
-private String sparkCoreIpAddress;
+private String particleDevice;
 private int udpPort;
 private LEDSignal standbyLED;
 
@@ -96,7 +96,7 @@ void setup()
 
   HashMap<String, String> parsedConfig = readProps(loadStrings(CONFIG_FILE));
   midiInput = parsedConfig.get(KEY_MIDI_PORT_NAME);
-  sparkCoreIpAddress = parsedConfig.get(KEY_PARTICLE_CORE_IP);
+  particleDevice = parsedConfig.get(KEY_PARTICLE_DEVICE_IP);
   udpPort = new Integer(parsedConfig.get(KEY_PARTICLE_UDP_PORT));
   standbyLED = parseLEDValues(parseJSONObject(parsedConfig.get(KEY_STANDBY_LED_COLOR)));
 
@@ -164,7 +164,7 @@ void draw()
   textAlign(CENTER);
   text ("MIDI Visual Metronome", width * 0.5, 75);
   text ("MIDI Sync Input Device: " + midiInput, width * 0.5, 140);
-  text ("Output IP Address: " + sparkCoreIpAddress, width * 0.5, 165);
+  text ("Output IP Address: " + particleDevice, width * 0.5, 165);
   text ("Output UDP Port: " + udpPort, width * 0.5, 190);
   text ("version: " + version, width * .75, 275);
 }
@@ -248,7 +248,7 @@ void rawMidi(byte[] data)
         midiTimingCounter = 0;
       }
 
-      //Send a new set of colour values to the Spark Core
+      //Send a new set of colour values to the Particle device
       //based on the value of midiTimingCounter...
 
       //Disable "breathing" for a crisper visual
@@ -266,7 +266,7 @@ void rawMidi(byte[] data)
     //set that we don't want to flash the LED
     flashingLed = false;
 
-    //Send a new set of colour values to the Spark Core
+    //Send a new set of colour values to the Particle device
     //based on the colour values
     setLEDReady();
     sendData();
@@ -287,8 +287,8 @@ void sendData(float multiplier) {
   //Create an array of bytes that stores the colour values
   byte data_to_send[] = {(byte)red_float, (byte)green_float, (byte)blue_float};
 
-  //Send the new colour values to the Spark Core board
-  udp.send(data_to_send, sparkCoreIpAddress, udpPort);
+  //Send the new colour values to the Particle device
+  udp.send(data_to_send, particleDevice, udpPort);
 }
 
 private void setLEDBlack() {
