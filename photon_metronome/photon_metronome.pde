@@ -1,5 +1,5 @@
 //This application listens for MIDI Clock and CC messages on its
-//MIDI input, and uses them to send UDP messages to a Spark Core
+//MIDI input, and uses them to send UDP messages to a Particle
 //board to set the colour and brightness of the onboard RGB LED.
 
 //Original with gratitude from:
@@ -15,7 +15,8 @@
 // 0.1 - initial prototype with Abelton Live. cycle support via track output
 // 0.2 - add config file import. CC 123 now resets LED back. GUI updated
 // 0.3 - config file improved, RGB colors now injectable via JSON
-String version = "0.2";
+// 0.4 - refactored MIDI CC conditionals to strategy pattern, for easier scaling
+String version = "0.4";
 
 //Import the MidiBus library
 import themidibus.*;
@@ -24,17 +25,23 @@ import hypermedia.net.*;
 
 //Create a MIDI bus object for receiving MIDI data
 MidiBus midiBus;
-//Create a UDP object for sending UDP messages to the Spark Core board
+//Create a UDP object for sending UDP messages to the Particle device
 UDP udp;
+//Font variable for user interface
+PFont f;
 
 //Config values
 private static final String CONFIG_FILE = "config.properties";
 private static final String KEY_MIDI_PORT_NAME = "virtual.midi.port.name";
-private static final String KEY_PARTICLE_CORE_IP = "spark.core.ip.address";
+private static final String KEY_PARTICLE_DEVICE_IP = "particle.device.ip.address";
 private static final String KEY_PARTICLE_UDP_PORT = "udpPort";
-String midiInput;
-String sparkCoreIpAddress;
-int udpPort;
+private static final String KEY_MIDI_CC_PROP_NAME_PREFIX = "prefix.cc.signal.property";
+private static final String KEY_STANDBY_LED_COLOR = "standby.led.color";
+
+private String midiInput;
+private String particleDevice;
+private int udpPort;
+private LEDSignal standbyLED;
 
 //Values of the MIDI messages we will be using
 private static final byte MIDI_CLOCK_TIMING = (byte)0xF8;
@@ -43,21 +50,26 @@ private static final byte MIDI_CLOCK_CONTINUE = (byte)0xFB;
 private static final byte MIDI_CLOCK_STOP = (byte)0xFC;
 private static final byte MIDI_CC_STATUS = (byte)0xB0;
 private static final byte MIDI_STATUS_NIBBLE = (byte)0xF0;
-
 //MIDI clock spec for number of pulses per quarter note
 private static final int CLOCK_RATE_PER_QUARTER_NOTE = 24;
 
 //The CC numbers we want to use to control the LED
 //colour values. Change these values if you want to
-//use different CC numbers.
-//20-31 are undefined as per the spec, hence these defaults
-private byte CC_TYPE_DOWNBEAT = (byte)20;
-private byte CC_TYPE_TICK = (byte)21;
-private byte CC_TYPE_HALFBEAT = (byte)22;
+//use different CC numbers. 20-31 are undefined as per
+//the spec, so these are available to use
+private static final HashMap<Byte, LEDSignal> MIDI_CC_SIGNALS = new HashMap<Byte, LEDSignal>();
 private static final byte MIDI_CC_ALL_NOTES_OFF = (byte)123;
-private JSONObject downbeatRGB;
-private JSONObject tickRGB;
-private JSONObject halfbeatRGB;
+private static class LEDSignal {
+  private int redValue;
+  private int greenValue;
+  private int blueValue;
+  private LEDSignal(int redValue, int greenValue, int blueValue) {
+    this.redValue = redValue;
+    this.greenValue = greenValue;
+    this.blueValue = blueValue;
+  }
+}
+
 
 //Variables to hold the static colour values
 int redValue = 255;
@@ -75,9 +87,6 @@ int midiTimingCounter = 0;
 //Global message counter
 int messageCounter = 0;
 
-//Font variable for user interface
-PFont f;
-
 //=================================================================
 //The setup function.
 //This is run once when the application is started.
@@ -87,14 +96,18 @@ void setup()
 
   HashMap<String, String> parsedConfig = readProps(loadStrings(CONFIG_FILE));
   midiInput = parsedConfig.get(KEY_MIDI_PORT_NAME);
-  sparkCoreIpAddress = parsedConfig.get(KEY_PARTICLE_CORE_IP);
+  particleDevice = parsedConfig.get(KEY_PARTICLE_DEVICE_IP);
   udpPort = new Integer(parsedConfig.get(KEY_PARTICLE_UDP_PORT));
-  CC_TYPE_DOWNBEAT = (byte)(Integer.parseInt((parsedConfig.get("midi.cc.downbeat"))));
-  CC_TYPE_TICK = (byte)(Integer.parseInt((parsedConfig.get("midi.cc.tick"))));
-  CC_TYPE_HALFBEAT = (byte)(Integer.parseInt(parsedConfig.get("midi.cc.emptybeat")));
-  downbeatRGB = parseJSONObject(parsedConfig.get("led.downbeat"));
-  tickRGB = parseJSONObject(parsedConfig.get("led.tick"));
-  halfbeatRGB = parseJSONObject(parsedConfig.get("led.emptybeat"));
+  standbyLED = parseLEDValues(parseJSONObject(parsedConfig.get(KEY_STANDBY_LED_COLOR)));
+
+  String midiCcPropertyPrefix = parsedConfig.get(KEY_MIDI_CC_PROP_NAME_PREFIX);
+  for (String key : parsedConfig.keySet()) {
+    if (key.startsWith(midiCcPropertyPrefix)) {
+      JSONObject ccConfig = parseJSONObject(parsedConfig.get(key));
+      byte ccType = (byte) ccConfig.getInt("ccValue");
+      MIDI_CC_SIGNALS.put(ccType, parseLEDValues(ccConfig));
+    }
+  }
 
   size(300, 300);
   background(0);
@@ -130,6 +143,14 @@ HashMap<String, String> readProps(String[] in) {
   return out;
 }
 
+private LEDSignal parseLEDValues(JSONObject entry) {
+  int red = entry.getInt("red");
+  int green = entry.getInt("green");
+  int blue = entry.getInt("blue");
+  LEDSignal ledColors = new LEDSignal(red, green, blue);
+  return ledColors;
+}
+
 //=================================================================
 //The draw function.
 //This runs continuously until the application is stopped.
@@ -143,7 +164,7 @@ void draw()
   textAlign(CENTER);
   text ("MIDI Visual Metronome", width * 0.5, 75);
   text ("MIDI Sync Input Device: " + midiInput, width * 0.5, 140);
-  text ("Output IP Address: " + sparkCoreIpAddress, width * 0.5, 165);
+  text ("Output IP Address: " + particleDevice, width * 0.5, 165);
   text ("Output UDP Port: " + udpPort, width * 0.5, 190);
   text ("version: " + version, width * .75, 275);
 }
@@ -168,32 +189,24 @@ void rawMidi(byte[] data)
     int ccMessageValue = (int)data[2];
     println("-found a CC message inside: " + ccMessageType + " with value: " + ccMessageValue);
 
+    LEDSignal ledSignal = MIDI_CC_SIGNALS.get(ccMessageType);
+
     //If we have received a stop playing CC signal
-    if (ccMessageType == MIDI_CC_ALL_NOTES_OFF)
-    {
+    if (ccMessageType == MIDI_CC_ALL_NOTES_OFF) {
       // reset back to original color
       setLEDReady();
-    } else if (ccMessageValue == 0) {
+    }
+
+    else if (ccMessageValue == 0) {
+      // wait until next beat
       setLEDBlack();
     }
 
-    //If we have received a downbeat/"sam" value CC number
-    else if (ccMessageType == CC_TYPE_DOWNBEAT)
-    {
-      setLED(downbeatRGB);
-    }
-
-    //If we have received a normal "tick" beat CC number
-    else if (ccMessageType == CC_TYPE_TICK)
+    //If we have received a downbeat CC number
+    else if (ledSignal != null)
     {
       // constant intensity, regardless of non-zero CC value
-      setLED(tickRGB);
-    }
-
-    //If we have received a "open beat"/"khaali" value CC number
-    else if (ccMessageType == CC_TYPE_HALFBEAT)
-    {
-      setLED(halfbeatRGB);
+      setLED(ledSignal.redValue, ledSignal.greenValue, ledSignal.blueValue);
     }
 
     //If we're not currently flashing the LED
@@ -235,7 +248,7 @@ void rawMidi(byte[] data)
         midiTimingCounter = 0;
       }
 
-      //Send a new set of colour values to the Spark Core
+      //Send a new set of colour values to the Particle device
       //based on the value of midiTimingCounter...
 
       //Disable "breathing" for a crisper visual
@@ -253,7 +266,7 @@ void rawMidi(byte[] data)
     //set that we don't want to flash the LED
     flashingLed = false;
 
-    //Send a new set of colour values to the Spark Core
+    //Send a new set of colour values to the Particle device
     //based on the colour values
     setLEDReady();
     sendData();
@@ -274,38 +287,20 @@ void sendData(float multiplier) {
   //Create an array of bytes that stores the colour values
   byte data_to_send[] = {(byte)red_float, (byte)green_float, (byte)blue_float};
 
-  //Send the new colour values to the Spark Core board
-  udp.send(data_to_send, sparkCoreIpAddress, udpPort);
+  //Send the new colour values to the Particle device
+  udp.send(data_to_send, particleDevice, udpPort);
 }
 
-void setLEDBlack() {
+private void setLEDBlack() {
   setLED(0, 0, 0);
 }
 
-void setLEDYellow() {
-  setLED(255, 255, 0);
+private void setLEDReady() {
+  setLED(standbyLED.redValue, standbyLED.blueValue, standbyLED.greenValue);
 }
 
-void setLEDRed() {
-  setLED(255, 0, 0);
-}
-
-void setLEDBlue() {
-  setLED(0, 0, 255);
-}
-
-void setLEDReady() {
-  setLED(255, 255, 255);
-}
-
-void setLED(int red, int green, int blue) {
+private void setLED(int red, int green, int blue) {
   redValue = red;
   greenValue = green;
   blueValue = blue;
-}
-
-void setLED(JSONObject rgbValues) {
-  redValue = rgbValues.getInt("red");
-  greenValue = rgbValues.getInt("green");
-  blueValue = rgbValues.getInt("blue");
 }
