@@ -16,7 +16,8 @@
 // 0.2 - add config file import. CC 123 now resets LED back. GUI updated
 // 0.3 - config file improved, RGB colors now injectable via JSON
 // 0.4 - refactored MIDI CC conditionals to strategy pattern, for easier scaling
-String version = "0.4";
+// 0.5 - MIDI CC multiplier support based on envelope
+String version = "0.5";
 
 //Import the MidiBus library
 import themidibus.*;
@@ -37,11 +38,13 @@ private static final String KEY_PARTICLE_DEVICE_IP = "particle.device.ip.address
 private static final String KEY_PARTICLE_UDP_PORT = "udpPort";
 private static final String KEY_MIDI_CC_PROP_NAME_PREFIX = "prefix.cc.signal.property";
 private static final String KEY_STANDBY_LED_COLOR = "standby.led.color";
+private static final String KEY_USE_CC_MULTIPLIER = "use.cc.envelope.for.intensity";
 
 private String midiInput;
 private String particleDevice;
 private int udpPort;
 private LEDSignal standbyLED;
+private boolean useMultiplier;
 
 //Values of the MIDI messages we will be using
 private static final byte MIDI_CLOCK_TIMING = (byte)0xF8;
@@ -52,6 +55,7 @@ private static final byte MIDI_CC_STATUS = (byte)0xB0;
 private static final byte MIDI_STATUS_NIBBLE = (byte)0xF0;
 //MIDI clock spec for number of pulses per quarter note
 private static final int CLOCK_RATE_PER_QUARTER_NOTE = 24;
+private static final int MIDI_CC_ENVELOPE_MAX_VAL = 127;
 
 //The CC numbers we want to use to control the LED
 //colour values. Change these values if you want to
@@ -99,6 +103,7 @@ void setup()
   particleDevice = parsedConfig.get(KEY_PARTICLE_DEVICE_IP);
   udpPort = new Integer(parsedConfig.get(KEY_PARTICLE_UDP_PORT));
   standbyLED = parseLEDValues(parseJSONObject(parsedConfig.get(KEY_STANDBY_LED_COLOR)));
+  useMultiplier = new Boolean(parsedConfig.get(KEY_USE_CC_MULTIPLIER)).booleanValue();
 
   String midiCcPropertyPrefix = parsedConfig.get(KEY_MIDI_CC_PROP_NAME_PREFIX);
   for (String key : parsedConfig.keySet()) {
@@ -195,14 +200,12 @@ void rawMidi(byte[] data)
     if (ccMessageType == MIDI_CC_ALL_NOTES_OFF) {
       // reset back to original color
       setLEDReady();
-    }
-
-    else if (ccMessageValue == 0) {
+    } else if (ccMessageValue == 0) {
       // wait until next beat
       setLEDBlack();
     }
 
-    //If we have received a downbeat CC number
+    //If we have received a non-zero downbeat CC number
     else if (ledSignal != null)
     {
       // constant intensity, regardless of non-zero CC value
@@ -213,7 +216,11 @@ void rawMidi(byte[] data)
     //(meaning the LED is a static colour)
     if (flashingLed == false)
     {
-      sendData();
+      if (useMultiplier) {
+        sendData((float)ccMessageValue/MIDI_CC_ENVELOPE_MAX_VAL);
+      } else {
+        sendData();
+      }
     }
   }
 
@@ -288,6 +295,7 @@ void sendData(float multiplier) {
   byte data_to_send[] = {(byte)red_float, (byte)green_float, (byte)blue_float};
 
   //Send the new colour values to the Particle device
+  println("-sending LED data:", red_float, green_float, blue_float);
   udp.send(data_to_send, particleDevice, udpPort);
 }
 
