@@ -31,6 +31,36 @@ Demo track "Ya Devi" by [Sanchit Malhotra](https://www.youtube.com/channel/UCP5z
 ### SSDs Help Prevent Dropped Packets
 Heavy project files (large number of stemmed tracks, effects, etc.) creates in high I/O to the hard drive. In such cases, UDP packets seem to be dropping on the computer side and never get sent to the device!! This results in either the click never being sent, or the signal to turn the LED back to black to not be sent, etc. Using an SSD has not yet exhibited these problems.
 
+## How to Setup the Particle Photon with an AirPort Express
+### Flashing the Firmware over USB
+* Plug board into computer's USB. Brand new devices will already be flashing blue (listening mode). If device is solid cyan, push and hold setup for approx 3 seconds to go solid blue.
+* Plug Airport Express in. Internet is required for initial setup, so connect it to an actual network via Ethernet cable. LED should go from flashing yellow to solid green.
+* Connect laptop to the Airport Express network and verify internet is working
+* We'll be setting up over USB. Visit https://docs.particle.io/guide/getting-started/connect/photon/ for an overview
+* Open Terminal and type `particle setup` to login with your credentials, creating one if necessary
+* It should detect the device saying `I have detected a Photon connected via USB.` If not, double check the USB cable actually supports data and not just power! Select the detected Photon device and continue.
+* Answer Yes to `Shall I have the Photon scan for available Wi-Fi networks?`
+* Select the Airport Express' wireless network. Autodetect security type and enter the password.
+* Photon will now reboot. Menu screen changes to `It doesn't look like your Photon has made it to the cloud yet.` Once the device LED is solid cyan, select `Check again to see if the Photon has connected`
+* Name your photon (e.g. `metronome-ninja`)
+* Installer exits. Now it's time update the firmware so we don't check the internet on startup anymore.
+* To flash the new firmware over USB, we'll be following this guide https://docs.particle.io/guide/tools-and-features/cli/core/#update-your-device-remotely
+* Download the photon-metronome firmware from GitHub https://raw.githubusercontent.com/NaanProphet/photon-metronome/master/visualmetronome.ino
+* Compile/valide source (optional) `particle compile core visualmetronome.ino`
+* Flash from source `particle flash my_device_name visualmetronome.ino` where `my_device_name` is the same one we named before. To confirm type `particle list`
+* That's it!
+
+### Helpful tips
+* Use KisMac2 to detect WiFi networks
+* Use Angry IP Scanner to view devices on the network. (May have to scan a few times before it starts detecting properly.) Photon devices are under MAC Vendor of `Universal Global Scientific
+* Can self-assign the laptop's IP so it never conflicts—just have to remember to change TCP settings back to DHCP afterwards. E.g. 10.0.1.1 is the base station, so setting the laptop to 10.0.1.9 will leave 2-8 for Photon devices. Default subnet mask is 255.255.255.0
+
+
+### Troubleshooting
+If you brick it:
+* Boot into DFU mode and use dfu-util method following this guide https://docs.particle.io/faq/particle-devices/led-troubleshooting/photon/#manual-firmware-update
+* If the device is still flashing yellow after restarting, then issue `particle update`
+
 ## References
 * How to Build a Wireless Visual Metronome that Synchronizes with your DAW https://ask.audio/articles/how-to-build-a-wireless-visual-metronome-that-synchronizes-with-your-daw
 * Using virtual MIDI buses in Live https://help.ableton.com/hc/en-us/articles/209774225-Using-virtual-MIDI-buses-in-Live)
