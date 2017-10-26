@@ -1,4 +1,4 @@
-//This application listens for MIDI Clock and CC messages on its
+//This application listens for MIDI Clock and CC messages on its //<>//
 //MIDI input, and uses them to send UDP messages to a Particle
 //board to set the colour and brightness of the onboard RGB LED.
 
@@ -17,7 +17,8 @@
 // 0.3 - config file improved, RGB colors now injectable via JSON
 // 0.4 - refactored MIDI CC conditionals to strategy pattern, for easier scaling
 // 0.5 - MIDI CC multiplier support based on envelope
-String version = "0.5";
+// 0.6 - support for multiple Photon devices
+String version = "0.6";
 
 //Import the MidiBus library
 import themidibus.*;
@@ -41,7 +42,7 @@ private static final String KEY_STANDBY_LED_COLOR = "standby.led.color";
 private static final String KEY_USE_CC_MULTIPLIER = "use.cc.envelope.for.intensity";
 
 private String midiInput;
-private String particleDevice;
+private String[] particleDevices;
 private int udpPort;
 private LEDSignal standbyLED;
 private boolean useMultiplier;
@@ -100,7 +101,7 @@ void setup()
 
   HashMap<String, String> parsedConfig = readProps(loadStrings(CONFIG_FILE));
   midiInput = parsedConfig.get(KEY_MIDI_PORT_NAME);
-  particleDevice = parsedConfig.get(KEY_PARTICLE_DEVICE_IP);
+  particleDevices = splitTokens(parsedConfig.get(KEY_PARTICLE_DEVICE_IP), ",");
   udpPort = new Integer(parsedConfig.get(KEY_PARTICLE_UDP_PORT));
   standbyLED = parseLEDValues(parseJSONObject(parsedConfig.get(KEY_STANDBY_LED_COLOR)));
   useMultiplier = new Boolean(parsedConfig.get(KEY_USE_CC_MULTIPLIER)).booleanValue();
@@ -169,8 +170,12 @@ void draw()
   textAlign(CENTER);
   text ("MIDI Visual Metronome", width * 0.5, 75);
   text ("MIDI Sync Input Device: " + midiInput, width * 0.5, 140);
-  text ("Output IP Address: " + particleDevice, width * 0.5, 165);
-  text ("Output UDP Port: " + udpPort, width * 0.5, 190);
+  int rowPos = 165;
+  for (int i=0; i < particleDevices.length; i++) {
+    text ("Output IP Address " + i + ": " + particleDevices[i], width * 0.5, rowPos);
+    rowPos += 25;
+  }
+  text ("Output UDP Port: " + udpPort, width * 0.5, rowPos);
   text ("version: " + version, width * .75, 275);
 }
 
@@ -296,7 +301,9 @@ void sendData(float multiplier) {
 
   //Send the new colour values to the Particle device
   println("-sending LED data:", red_float, green_float, blue_float);
-  udp.send(data_to_send, particleDevice, udpPort);
+  for (int i=0; i < particleDevices.length; i++) {
+    udp.send(data_to_send, particleDevices[i], udpPort);
+  }
 }
 
 private void setLEDBlack() {
