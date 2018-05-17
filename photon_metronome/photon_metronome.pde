@@ -18,7 +18,8 @@
 // 0.4 - refactored MIDI CC conditionals to strategy pattern, for easier scaling
 // 0.5 - MIDI CC multiplier support based on envelope
 // 0.6 - support for multiple Photon devices
-String version = "0.6";
+// 0.7 - minor refactoring
+String version = "0.7";
 
 //Import the MidiBus library
 import themidibus.*;
@@ -37,7 +38,7 @@ private static final String CONFIG_FILE = "config.properties";
 private static final String KEY_MIDI_PORT_NAME = "virtual.midi.port.name";
 private static final String KEY_PARTICLE_DEVICE_IP = "particle.device.ip.address";
 private static final String KEY_PARTICLE_UDP_PORT = "udpPort";
-private static final String KEY_MIDI_CC_PROP_NAME_PREFIX = "prefix.cc.signal.property";
+private static final String KEY_MIDI_CC_PROP_NAME_PREFIX = "led";
 private static final String KEY_STANDBY_LED_COLOR = "standby.led.color";
 private static final String KEY_USE_CC_MULTIPLIER = "use.cc.envelope.for.intensity";
 
