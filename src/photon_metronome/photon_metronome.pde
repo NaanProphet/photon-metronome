@@ -18,7 +18,7 @@
 // 0.4 - refactored MIDI CC conditionals to strategy pattern, for easier scaling
 // 0.5 - MIDI CC multiplier support based on envelope
 // 0.6 - support for multiple Photon devices
-// 0.7 - minor refactoring
+// 0.7 - simplifying config property key names
 String version = "0.7";
 
 //Import the MidiBus library
