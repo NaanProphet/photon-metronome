@@ -13,7 +13,7 @@ Components include:
 * a 802.11 b/g router connecting the two
 * software like [Abelton Live](https://www.ableton.com/en/live/) or similar for generating MIDI [MIDI](https://en.wikipedia.org/wiki/MIDI) signals
 * a virtual MIDI device for piping the MIDI signals from the DAW to the processing application, e.g. using Apple's built-in IAC driver ([Inter Application Communication](https://developer.apple.com/legacy/library/documentation/mac/pdf/Interapplication_Communication/Intro_to_IAC.pdf)) part of Audio MIDI Setup in Utilities
-* a [Processing](https://processing.org) script that can run as a standalone executable that listens to the MIDI signals and sends them to the IOT device over Wi-Fi
+* a [Processing](https://processing.org) script (tested on 3.3.6-3.5.3) that can run as a standalone executable that listens to the MIDI signals and sends them to the IOT device over Wi-Fi
 
 ## Demos
 ### 2017-08-15 Visual Metronome Prototype with Ableton Live
@@ -48,6 +48,7 @@ Heavy project files (large number of stemmed tracks, effects, etc.) creates in h
 * Photon will now reboot. Menu screen changes to `It doesn't look like your Photon has made it to the cloud yet.` Once the device LED is solid cyan, select `Check again to see if the Photon has connected`
 * Name your photon (e.g. `metronome-ninja`)
 * Installer exits. Now it's time update the firmware so we don't check the internet on startup anymore.
+
 ### Flashing the Firmware over USB
 * To flash the new firmware over USB, we'll be following this guide https://docs.particle.io/guide/tools-and-features/cli/core/#update-your-device-remotely
 * Download the photon-metronome firmware from GitHub https://raw.githubusercontent.com/NaanProphet/photon-metronome/master/visualmetronome.ino
@@ -130,6 +131,22 @@ If you brick the photon:
    2. `particle.device.ip.address` to the comma-separated list of IPs of all Photons connected
    3. Optionally modify the RGB LED values for standby color, downbeat, etc.
    4. Optionally set `use.cc.envelope.for.intensity` to `false` for constant, highest light intensity regadless of CC intensity value (0-127).
+
+## Modifying the Processing Program
+
+* Install the Processing IDE `brew cask install processing` or visit <https://processing.org/download/>
+* Open `src/photon_metronome/photon_metronome.pde`
+* Install additional libraries by going to `Sketch` > `Import Library...` > `Add Library`
+  * Install `The MidiBus` by Severin Smith
+  * Install `UDP` by Stephane Cousot
+
+### Troubleshooting UDP Library Install
+
+Some networks block the hypermedia UDP library download because the website is HTTP not HTTPS. (This happened while I was on Duke's WiFi.) If you are unable to visit <http://ubaa.net/shared/processing/udp/> in your computer's browser, then this is likely the issue.
+
+Workaround is to download it using a cell phone and transfer it over. In case that fails some day in the future, I've uploaded the zip under `libraries` in this repo. The SHA512 checksum is saved in a sidecar text file and can be verified using `shasum -c udp.zip.sha512`
+
+To install the library manually, copy the unzipped `udp` folder into `~/Documents/Processing/libraries/` and restart Processing.
 
 ## References
 * How to Build a Wireless Visual Metronome that Synchronizes with your DAW https://ask.audio/articles/how-to-build-a-wireless-visual-metronome-that-synchronizes-with-your-daw
