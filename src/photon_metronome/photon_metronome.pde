@@ -18,12 +18,17 @@
 // 0.4 - refactored MIDI CC conditionals to strategy pattern, for easier scaling
 // 0.5 - MIDI CC multiplier support based on envelope
 // 0.6 - support for multiple Photon devices
-String version = "0.6";
+// 0.7 - simplifying config property key names and improving error handling
+String version = "0.7";
 
 //Import the MidiBus library
 import themidibus.*;
 //Import the UDP library
 import hypermedia.net.*;
+//Java libraries
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 
 //Create a MIDI bus object for receiving MIDI data
 MidiBus midiBus;
@@ -34,10 +39,11 @@ PFont f;
 
 //Config values
 private static final String CONFIG_FILE = "config.properties";
+private static final String MIDI_CC_PROP_NAME_PREFIX = "led";
+
 private static final String KEY_MIDI_PORT_NAME = "virtual.midi.port.name";
 private static final String KEY_PARTICLE_DEVICE_IP = "particle.device.ip.address";
 private static final String KEY_PARTICLE_UDP_PORT = "udpPort";
-private static final String KEY_MIDI_CC_PROP_NAME_PREFIX = "prefix.cc.signal.property";
 private static final String KEY_STANDBY_LED_COLOR = "standby.led.color";
 private static final String KEY_USE_CC_MULTIPLIER = "use.cc.envelope.for.intensity";
 
@@ -75,6 +81,7 @@ private static class LEDSignal {
   }
 }
 
+private static final int GUI_BACKGROUND_RGB = 0;
 
 //Variables to hold the static colour values
 int redValue = 255;
@@ -92,47 +99,79 @@ int midiTimingCounter = 0;
 //Global message counter
 int messageCounter = 0;
 
+String startupErrors = "";
+
 //=================================================================
 //The setup function.
 //This is run once when the application is started.
 
 void setup()
-{
-
-  HashMap<String, String> parsedConfig = readProps(loadStrings(CONFIG_FILE));
+{  
+  //Prepare GUI window
+  size(640, 360);
+  
+  //Setup font
+  f = createFont("Arial", 22);
+  textFont(f);
+  textAlign(CENTER, CENTER);
+  
+  HashMap<String, String> parsedConfig = readProps(CONFIG_FILE);
+  
+  if (parsedConfig == null) {
+    startupErrors += "Cannot find " + CONFIG_FILE + " file!";
+    return;
+  } 
+  
+  if (!validate(parsedConfig)) {
+    return;
+  }
+  
   midiInput = parsedConfig.get(KEY_MIDI_PORT_NAME);
   particleDevices = splitTokens(parsedConfig.get(KEY_PARTICLE_DEVICE_IP), ",");
   udpPort = new Integer(parsedConfig.get(KEY_PARTICLE_UDP_PORT));
   standbyLED = parseLEDValues(parseJSONObject(parsedConfig.get(KEY_STANDBY_LED_COLOR)));
   useMultiplier = new Boolean(parsedConfig.get(KEY_USE_CC_MULTIPLIER)).booleanValue();
 
-  String midiCcPropertyPrefix = parsedConfig.get(KEY_MIDI_CC_PROP_NAME_PREFIX);
-  for (String key : parsedConfig.keySet()) {
-    if (key.startsWith(midiCcPropertyPrefix)) {
+  for (String key : parsedConfig.keySet()) { //<>//
+    if (key.startsWith(MIDI_CC_PROP_NAME_PREFIX)) {
       JSONObject ccConfig = parseJSONObject(parsedConfig.get(key));
       byte ccType = (byte) ccConfig.getInt("ccValue");
       MIDI_CC_SIGNALS.put(ccType, parseLEDValues(ccConfig));
     }
   }
 
-  size(300, 300);
-  background(0);
-
   //List all the available MIDI inputs/ouputs on the output console.
   MidiBus.list();
+  
+  //Check if MIDI device exists
+  List<String> availableInputs = Arrays.asList(MidiBus.availableInputs());
+  List<String> availableOutputs = Arrays.asList(MidiBus.availableOutputs());
+  
+  if (!availableInputs.contains(midiInput) || !availableOutputs.contains(midiInput)) {
+    startupErrors += "MIDI device [" + midiInput + "] not found! ";
+    startupErrors += "Available inputs are: " + availableInputs;
+    return;
+  }
 
   //Set the MIDI bus object to receive from
   midiBus = new MidiBus(this, midiInput, -1);
+  
+  println("midiBus is: " + midiBus);
 
   //Setup the UDP connection
   udp = new UDP(this, udpPort-1);
 
-  //Setup font
-  f = createFont ("Arial", 16, true);
 }
 
 //Parses a Java-esque properties file
-HashMap<String, String> readProps(String[] in) {
+HashMap<String, String> readProps(String configFile) {
+  
+  String[] in = loadStrings(configFile);
+  
+  if (in == null) {
+    //cannot find file
+    return null;
+  }
 
   HashMap<String, String> out = new HashMap<String, String>();
   for (String propLine : in) {
@@ -157,26 +196,54 @@ private LEDSignal parseLEDValues(JSONObject entry) {
   return ledColors;
 }
 
+private boolean validate(HashMap<String, String> config) {
+  
+  // add all expected keys
+  ArrayList<String> expectedKeys = new ArrayList<String>();
+  expectedKeys.add(KEY_MIDI_PORT_NAME);
+  expectedKeys.add(KEY_PARTICLE_DEVICE_IP);
+  expectedKeys.add(KEY_PARTICLE_UDP_PORT);
+  expectedKeys.add(KEY_STANDBY_LED_COLOR);
+  expectedKeys.add(KEY_USE_CC_MULTIPLIER);
+  
+  // subtract the difference
+  Set<String> actualKeys = config.keySet();
+  // mutatates the collection
+  expectedKeys.removeAll(actualKeys);
+  
+  if (expectedKeys.size() != 0) {
+    startupErrors += "Missing config keys " + expectedKeys;
+    return false;
+  }
+  return true;
+}
+
 //=================================================================
 //The draw function.
 //This runs continuously until the application is stopped.
 
 void draw()
 {
-
-  //Create a basic graphical interface
-  textFont (f, 16);
-  fill(200);
-  textAlign(CENTER);
-  text ("MIDI Visual Metronome", width * 0.5, 75);
-  text ("MIDI Sync Input Device: " + midiInput, width * 0.5, 140);
-  int rowPos = 165;
-  for (int i=0; i < particleDevices.length; i++) {
-    text ("Output IP Address " + i + ": " + particleDevices[i], width * 0.5, rowPos);
-    rowPos += 25;
+  // must be in draw function, otherwise text is blurry
+  background(GUI_BACKGROUND_RGB);
+ 
+  fill(255, 255, 255);
+  text ("MIDI Photon Metronome v" + version, width * 0.5, 50);
+  
+  if (startupErrors.length() != 0) {
+    fill(255, 0, 0);
+    // text box with wrapping
+    text (startupErrors, 125, 5, 400, 400);
+  } else {
+    text ("MIDI Sync Input Device: " + midiInput, width * 0.5, 140);
+    int rowPos = 165;
+    for (int i=0; i < particleDevices.length; i++) {
+      text ("Output IP Address " + i + ": " + particleDevices[i], width * 0.5, rowPos);
+      rowPos += 25;
+    }
+    text ("Output UDP Port: " + udpPort, width * 0.5, rowPos);
+    
   }
-  text ("Output UDP Port: " + udpPort, width * 0.5, rowPos);
-  text ("version: " + version, width * .75, 275);
 }
 
 //=================================================================
