@@ -80,7 +80,7 @@ If you brick the photon:
 3. Double click on `IAC Driver` which is by default disabled (grey).
    ![](docs/1-3.png)
 
-4. Select `Device is online` to activate the virtual MIDI bus in all DAWs. Rename the device name, if you choose.
+4. Select `Device is online` to activate the virtual MIDI bus in all DAWs. Rename the device name, if you choose. **Take special note of the port/bus name** which is needed for The MidiBus library config later. The default is `Bus 1`.
    ![](docs/1-4.png)
 
 5. In Ableton Live, open Preferences. Set the Virtual MIDI `Output` bus to `Track` for sending MIDI CC signals and envelopes to the Photon metronome. Turn off the Virtual MIDI `Input` bus since we will not be sending signals from the Photon to the DAW.
