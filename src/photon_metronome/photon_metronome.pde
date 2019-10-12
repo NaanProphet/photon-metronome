@@ -26,6 +26,8 @@ import themidibus.*;
 //Import the UDP library
 import hypermedia.net.*;
 //Java libraries
+import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 
 //Create a MIDI bus object for receiving MIDI data
@@ -97,7 +99,7 @@ int midiTimingCounter = 0;
 //Global message counter
 int messageCounter = 0;
 
-ArrayList<String> startupErrors = new ArrayList<String>();
+String startupErrors = "";
 
 //=================================================================
 //The setup function.
@@ -116,7 +118,7 @@ void setup()
   HashMap<String, String> parsedConfig = readProps(CONFIG_FILE);
   
   if (parsedConfig == null) {
-    startupErrors.add("Cannot find config.properties file!");
+    startupErrors += "Cannot find " + CONFIG_FILE + " file!";
     return;
   } 
   
@@ -140,11 +142,21 @@ void setup()
 
   //List all the available MIDI inputs/ouputs on the output console.
   MidiBus.list();
+  
+  //Check if MIDI device exists
+  List<String> availableInputs = Arrays.asList(MidiBus.availableInputs());
+  List<String> availableOutputs = Arrays.asList(MidiBus.availableOutputs());
+  
+  if (!availableInputs.contains(midiInput) || !availableOutputs.contains(midiInput)) {
+    startupErrors += "MIDI device [" + midiInput + "] not found! ";
+    startupErrors += "Available inputs are: " + availableInputs;
+    return;
+  }
 
   //Set the MIDI bus object to receive from
   midiBus = new MidiBus(this, midiInput, -1);
+  
   println("midiBus is: " + midiBus);
-  // TODO check if bus not found??
 
   //Setup the UDP connection
   udp = new UDP(this, udpPort-1);
@@ -196,13 +208,11 @@ private boolean validate(HashMap<String, String> config) {
   
   // subtract the difference
   Set<String> actualKeys = config.keySet();
-  println(actualKeys);
-  println(expectedKeys);
+  // mutatates the collection
   expectedKeys.removeAll(actualKeys);
-  println(expectedKeys);
   
   if (expectedKeys.size() != 0) {
-    startupErrors.addAll(expectedKeys);
+    startupErrors += "Missing config keys " + expectedKeys;
     return false;
   }
   return true;
@@ -220,9 +230,10 @@ void draw()
   fill(255, 255, 255);
   text ("MIDI Photon Metronome v" + version, width * 0.5, 50);
   
-  if (startupErrors.size() != 0) {
+  if (startupErrors.length() != 0) {
     fill(255, 0, 0);
-    text (startupErrors.toString(), width * 0.5, 140);
+    // text box with wrapping
+    text (startupErrors, 125, 5, 400, 400);
   } else {
     text ("MIDI Sync Input Device: " + midiInput, width * 0.5, 140);
     int rowPos = 165;
