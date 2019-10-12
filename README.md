@@ -144,7 +144,7 @@ If you brick the photon:
 
 Some networks block the hypermedia UDP library download because the website is HTTP not HTTPS. (This happened while I was on Duke's WiFi.) If you are unable to visit <http://ubaa.net/shared/processing/udp/> in your computer's browser, then this is likely the issue.
 
-Workaround is to download it using a cell phone and transfer it over. In case that fails some day in the future, I've uploaded the zip under `libraries` in this repo. The SHA512 checksum is saved in a sidecar text file and can be verified using `shasum -c udp.zip.sha512`
+Workaround is to download it using a cell phone and transfer it over. In case that fails some day in the future, I've uploaded the zip under `src/libs` in this repo. The SHA512 checksum is saved in a sidecar text file and can be verified using `shasum -c udp.zip.sha512`
 
 To install the library manually, copy the unzipped `udp` folder into `~/Documents/Processing/libraries/` and restart Processing.
 
