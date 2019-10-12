@@ -108,10 +108,10 @@ String startupErrors = "";
 void setup()
 {  
   //Prepare GUI window
-  size(640, 360);
+  size(300, 300);
   
   //Setup font
-  f = createFont("Arial", 22);
+  f = createFont("Arial", 16);
   textFont(f);
   textAlign(CENTER, CENTER);
   
@@ -228,21 +228,26 @@ void draw()
   background(GUI_BACKGROUND_RGB);
  
   fill(255, 255, 255);
-  text ("MIDI Photon Metronome v" + version, width * 0.5, 50);
+  textSize(20);
+  text ("MIDI Photon Metronome", width * 0.5, 50);
+  
+  textSize(16);
+  text ("version: " + version, width * .75, 275);
   
   if (startupErrors.length() != 0) {
     fill(255, 0, 0);
-    // text box with wrapping
-    text (startupErrors, 125, 5, 400, 400);
+    //text box with wrapping
+    text (startupErrors, 0, 0, 300, 300);
   } else {
-    text ("MIDI Sync Input Device: " + midiInput, width * 0.5, 140);
-    int rowPos = 165;
+    int rowSpacing = 25;
+    int rowPos = 120;
+    text ("MIDI Sync Input Device: " + midiInput, width * 0.5, rowPos);
     for (int i=0; i < particleDevices.length; i++) {
+      rowPos += rowSpacing;
       text ("Output IP Address " + i + ": " + particleDevices[i], width * 0.5, rowPos);
-      rowPos += 25;
     }
+    rowPos += rowSpacing;
     text ("Output UDP Port: " + udpPort, width * 0.5, rowPos);
-    
   }
 }
 
