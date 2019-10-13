@@ -15,6 +15,22 @@ Components include:
 * a virtual MIDI device for piping the MIDI signals from the DAW to the processing application, e.g. using Apple's built-in IAC driver ([Inter Application Communication](https://developer.apple.com/legacy/library/documentation/mac/pdf/Interapplication_Communication/Intro_to_IAC.pdf)) part of Audio MIDI Setup in Utilities
 * a [Processing](https://processing.org) script (tested on 3.3.6-3.5.3) that can run as a standalone executable that listens to the MIDI signals and sends them to the IOT device over Wi-Fi
 
+## Supported Operating Systems
+
+The Processing IDE is able to compile the program to many operating systems:
+
+* linux-arm64
+* linux-armv6hf
+* linux32
+* linux64
+* macosx
+* windows32
+* windows64
+
+However, since I have only tested on Mac OS X, [published releases](https://github.com/NaanProphet/photon-metronome/releases) will be Mac only.
+
+Also to prevent Java installation issues, all Mac releases will be bundled with Java.
+
 ## Demos
 ### 2017-08-15 Visual Metronome Prototype with Ableton Live
 Demo track "Ya Devi" by [Sanchit Malhotra](https://www.youtube.com/channel/UCP5zbHm0cLnCYuJd3LlvRZA) from the album Yuva Rhythms: Jagat Janani. Visit https://chykwest.com/yuvarhythms
