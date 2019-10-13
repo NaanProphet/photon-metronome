@@ -101,7 +101,7 @@ If you brick the photon:
 
 5. In Ableton Live, open Preferences. Set the Virtual MIDI `Output` bus to `Track` for sending MIDI CC signals and envelopes to the Photon metronome. Turn off the Virtual MIDI `Input` bus since we will not be sending signals from the Photon to the DAW.
 
-   Note: the difference between `Track` and `Sync` is that the latter is simply the time signature-agnostic click/metronome. `Sync` will not allow us the Photon to map colors for downbeats different from offbeats, etc.
+   Note: the difference between `Track` and `Sync` is that the latter is simply the time signature-agnostic click/metronome. `Sync` will not allow us to map the Photon to different colors for downbeats, offbeats, etc.
 
    ![](docs/1-5.png)
 
