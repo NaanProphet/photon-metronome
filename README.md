@@ -66,12 +66,24 @@ Heavy project files (large number of stemmed tracks, effects, etc.) creates in h
 * Installer exits. Now it's time update the firmware so we don't check the internet on startup anymore.
 
 ### Flashing the Firmware over USB
-* To flash the new firmware over USB, we'll be following this guide https://docs.particle.io/guide/tools-and-features/cli/core/#update-your-device-remotely
+
+* Plug the Photon via USB, first. Let it boot up (even if it has an existing program).
+* Identify the Photon's device ID by looking the `serial` attribute of `dfu-util -l | grep --color serial`
+  * If it's ambiguous, unplug the device and run `dfu-util -l` to compare the difference
+* Confirm the device ID matches by checking `particle list` (case insensitive)
+  * For example: ```$ particle list
+metronome-ninja [530056001951363036373538] (Photon) is offline```
+  * Note `(Photon) is offline` may show even while connected via USB if the device is not connected to the Internet
+* Enter DFU mode by pressing the Setup and Reset buttons, releasing reset, and releasing Setup once blinking yellow. See here for a video: https://docs.particle.io/tutorials/device-os/led/photon/#dfu-mode-device-firmware-upgrade-
 * Download the photon-metronome firmware from GitHub https://raw.githubusercontent.com/NaanProphet/photon-metronome/master/visualmetronome.ino
-* Compile/validate source (optional) `particle compile core visualmetronome.ino`
-  * This will create a compiled `.bin` file
-* Flash from source `particle flash <my_device_name> visualmetronome.ino` where `my_device_name` is the same one we named before. To confirm type `particle list`
+* Compile and validate source `particle compile <platform> visualmetronome.ino`
+  * For Photon, `platform` is `p`. A full list of other types is available at: https://docs.particle.io/reference/developer-tools/cli/#particle-compile
+  * This will create a compiled `.bin` file in the same directory
+* Flash from source `particle flash --usb <bin_file>` where `bin_file` is the binary file that was just compiled
+  * Alternatively use `particle flash <device_name_or_id> particle.bin` where `device_name_or_id` is either the device's name or the device's serial ID
 * That's it!
+
+More detailed information about flashing firmware using DFU (Disk Firmware Update) mode is available here: https://docs.particle.io/support/particle-tools-faq/installing-dfu-util/#using-dfu-util
 
 ### Helpful Tips
 
