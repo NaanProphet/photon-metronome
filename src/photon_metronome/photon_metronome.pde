@@ -12,14 +12,14 @@
 
 // code version
 // version history:
-// 0.1 - initial prototype with Abelton Live. cycle support via track output
-// 0.2 - add config file import. CC 123 now resets LED back. GUI updated
-// 0.3 - config file improved, RGB colors now injectable via JSON
-// 0.4 - refactored MIDI CC conditionals to strategy pattern, for easier scaling
-// 0.5 - MIDI CC multiplier support based on envelope
-// 0.6 - support for multiple Photon devices
-// 0.7 - simplifying config property key names and improving error handling
-String version = "0.7";
+// 0.1-alpha.1 - initial prototype with Abelton Live. cycle support via track output
+// 0.1-alpha.2 - add config file import. CC 123 now resets LED back. GUI updated
+// 0.1-alpha.3 - config file improved, RGB colors now injectable via JSON
+// 0.1-alpha.4 - refactored MIDI CC conditionals to strategy pattern, for easier scaling
+// 0.1 - MIDI CC multiplier support based on envelope
+// 0.2 - support for multiple Photon devices
+// 0.3-beta.1 - simplifying config property key names and improving error handling
+String version = "0.3-beta.1";
 
 //Import the MidiBus library
 import themidibus.*;
