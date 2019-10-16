@@ -2,6 +2,6 @@
 .DS_Store
 firmware/*.bin
 src/photon_metronome/application.macosx
-release/Photon Metronome/*
-!release/Photon Metronome/GitHub Page.webloc
-release/*.dmg
+staging/Photon Metronome/*
+!staging/Photon Metronome/GitHub Page.webloc
+staging/*.dmg
