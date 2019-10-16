@@ -25,7 +25,7 @@ BUILD_NUMBER=`shasum "${APP}/Contents/MacOS/${PROJECT_NAME}" | head -c 6`
 
 
 # write plist metadata
-defaults write "${PLIST}" CFBundleShortVersionString "${VERSION}"
+defaults write "${PLIST}" CFBundleShortVersionString "${VERSION} build ${BUILD_NUMBER}"
 defaults write "${PLIST}" NSHumanReadableCopyright "${COPYRIGHT}"
 defaults write "${PLIST}" CFBundleVersion "${BUILD_NUMBER}"
 
