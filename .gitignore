@@ -3,4 +3,5 @@
 firmware/*.bin
 src/photon_metronome/application.macosx
 release/Photon Metronome/*
+!release/Photon Metronome/GitHub Page.webloc
 release/*.dmg
