@@ -2,3 +2,5 @@
 .DS_Store
 firmware/*.bin
 src/photon_metronome/application.macosx
+release/Photon Metronome/*
+release/*.dmg
