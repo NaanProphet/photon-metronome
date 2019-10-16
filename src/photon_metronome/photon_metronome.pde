@@ -18,7 +18,7 @@
 // 0.1-alpha.4 - refactored MIDI CC conditionals to strategy pattern, for easier scaling
 // 0.1-beta.1 - MIDI CC multiplier support based on envelope
 // 0.1-beta.2 - support for multiple Photon devices
-// 0.1-beta.3 - simplifying config property key names and improving error handling
+// 0.1-beta.3 - new performance mode, simpler config, improved error handling
 String version = "0.1-beta.3";
 
 //Import the MidiBus library
@@ -46,12 +46,17 @@ private static final String KEY_PARTICLE_DEVICE_IP = "particle.device.ip.address
 private static final String KEY_PARTICLE_UDP_PORT = "udpPort";
 private static final String KEY_STANDBY_LED_COLOR = "standby.led.color";
 private static final String KEY_USE_CC_MULTIPLIER = "use.cc.envelope.for.intensity";
+private static final String KEY_ENABLE_SINGLE_BYTE_MODE = "enable.single.byte.mode";
+private static final String KEY_ENABLE_DEBUG_LOGGING = "enable.debug.logging";
 
 private String midiInput;
 private String[] particleDevices;
 private int udpPort;
 private LEDSignal standbyLED;
+private LEDSignal blackLED = new LEDSignal('Z', 0, 0, 0);
 private boolean useMultiplier;
+private boolean useSingleByteMode;
+private boolean debug;
 
 //Values of the MIDI messages we will be using
 private static final byte MIDI_CLOCK_TIMING = (byte)0xF8;
@@ -71,10 +76,12 @@ private static final int MIDI_CC_ENVELOPE_MAX_VAL = 127;
 private static final HashMap<Byte, LEDSignal> MIDI_CC_SIGNALS = new HashMap<Byte, LEDSignal>();
 private static final byte MIDI_CC_ALL_NOTES_OFF = (byte)123;
 private static class LEDSignal {
+  private char alias;
   private int redValue;
   private int greenValue;
   private int blueValue;
-  private LEDSignal(int redValue, int greenValue, int blueValue) {
+  private LEDSignal(char alias, int redValue, int greenValue, int blueValue) {
+    this.alias = alias;
     this.redValue = redValue;
     this.greenValue = greenValue;
     this.blueValue = blueValue;
@@ -87,6 +94,7 @@ private static final int GUI_BACKGROUND_RGB = 0;
 int redValue = 255;
 int greenValue = 255;
 int blueValue = 255;
+char singleCharValue = 'S';
 
 //Variable that is set to true when we want to
 //flash the LED.
@@ -131,8 +139,10 @@ void setup()
   udpPort = new Integer(parsedConfig.get(KEY_PARTICLE_UDP_PORT));
   standbyLED = parseLEDValues(parseJSONObject(parsedConfig.get(KEY_STANDBY_LED_COLOR)));
   useMultiplier = new Boolean(parsedConfig.get(KEY_USE_CC_MULTIPLIER)).booleanValue();
+  useSingleByteMode = new Boolean(parsedConfig.get(KEY_ENABLE_SINGLE_BYTE_MODE)).booleanValue();
+  debug = new Boolean(parsedConfig.get(KEY_ENABLE_DEBUG_LOGGING)).booleanValue();
 
-  for (String key : parsedConfig.keySet()) { //<>// //<>//
+  for (String key : parsedConfig.keySet()) {
     if (key.startsWith(MIDI_CC_PROP_NAME_PREFIX)) {
       JSONObject ccConfig = parseJSONObject(parsedConfig.get(key));
       byte ccType = (byte) ccConfig.getInt("ccValue");
@@ -189,10 +199,11 @@ HashMap<String, String> readProps(String configFile) {
 }
 
 private LEDSignal parseLEDValues(JSONObject entry) {
+  char alias = entry.getString("alias").charAt(0);
   int red = entry.getInt("red");
   int green = entry.getInt("green");
   int blue = entry.getInt("blue");
-  LEDSignal ledColors = new LEDSignal(red, green, blue);
+  LEDSignal ledColors = new LEDSignal(alias, red, green, blue);
   return ledColors;
 }
 
@@ -205,6 +216,8 @@ private boolean validate(HashMap<String, String> config) {
   expectedKeys.add(KEY_PARTICLE_UDP_PORT);
   expectedKeys.add(KEY_STANDBY_LED_COLOR);
   expectedKeys.add(KEY_USE_CC_MULTIPLIER);
+  expectedKeys.add(KEY_ENABLE_SINGLE_BYTE_MODE);
+  expectedKeys.add(KEY_ENABLE_DEBUG_LOGGING);
   
   // subtract the difference
   Set<String> actualKeys = config.keySet();
@@ -241,13 +254,15 @@ void draw()
   } else {
     int rowSpacing = 25;
     int rowPos = 140;
-    text ("MIDI Sync Input Device: " + midiInput, width * 0.5, rowPos);
+    text ("MIDI Input Device: " + midiInput, width * 0.5, rowPos);
     for (int i=0; i < particleDevices.length; i++) {
       rowPos += rowSpacing;
       text ("Output IP Address " + i + ": " + particleDevices[i], width * 0.5, rowPos);
     }
     rowPos += rowSpacing;
-    text ("Output UDP Port: " + udpPort, width * 0.5, rowPos);
+    text ("UDP Port: " + udpPort, width * 0.5, rowPos);
+    rowPos += rowSpacing;
+    text ("Single Byte Mode: " + (useSingleByteMode ? "ON!" : "OFF"), width * 0.5, rowPos);
   }
 }
 
@@ -258,8 +273,11 @@ void draw()
 
 void rawMidi(byte[] data)
 {
-  messageCounter++;
-  println("Message " + messageCounter);
+ 
+  if (debug) {
+    messageCounter++;
+    println("Message " + messageCounter);
+  }
 
   byte midiStatus = data[0];
 
@@ -269,7 +287,9 @@ void rawMidi(byte[] data)
     byte ccMessageType = data[1];
     // value of the envelope: 0-127
     int ccMessageValue = (int)data[2];
-    println("-found a CC message inside: " + ccMessageType + " with value: " + ccMessageValue);
+    if (debug) {
+      println("-found a CC message inside: " + ccMessageType + " with value: " + ccMessageValue);
+    }
 
     LEDSignal ledSignal = MIDI_CC_SIGNALS.get(ccMessageType);
 
@@ -281,13 +301,13 @@ void rawMidi(byte[] data)
       // wait until next beat
       setLEDBlack();
     }
-
     //If we have received a non-zero downbeat CC number
     else if (ledSignal != null)
     {
-      // constant intensity, regardless of non-zero CC value
-      setLED(ledSignal.redValue, ledSignal.greenValue, ledSignal.blueValue);
+      // prepare the global variables
+      setLED(ledSignal);
     }
+    
 
     //If we're not currently flashing the LED
     //(meaning the LED is a static colour)
@@ -304,7 +324,9 @@ void rawMidi(byte[] data)
   //if we have received a MIDI Clock start or continue message...
   else if (midiStatus == MIDI_CLOCK_START || midiStatus == MIDI_CLOCK_CONTINUE)
   {
-    println("There was a start/continue message");
+    if (debug) {
+      println("There was a start/continue message");
+    }
 
     //set that we want to flash the LED
     flashingLed = true;
@@ -317,7 +339,9 @@ void rawMidi(byte[] data)
   //if we have received a MIDI Clock timing message...
   else if (midiStatus == MIDI_CLOCK_TIMING)
   {
-    println("There was a timing tick");
+    if (debug) {
+      println("There was a timing tick");
+    }
 
     //if we want to flash the LED
     if (flashingLed == true)
@@ -345,7 +369,9 @@ void rawMidi(byte[] data)
   //if we have received a MIDI Clock stop message...
   else if (midiStatus == MIDI_CLOCK_STOP)
   {
-    println("There was a stop message");
+    if (debug) {
+      println("There was a stop message");
+    }
 
     //set that we don't want to flash the LED
     flashingLed = false;
@@ -362,32 +388,54 @@ void sendData() {
 }
 
 void sendData(float multiplier) {
-
-  //Multiply each colour value with the multiplier
-  float red_float = (float)redValue * multiplier;
-  float green_float = (float)greenValue * multiplier;
-  float blue_float = (float)blueValue * multiplier;
-
-  //Create an array of bytes that stores the colour values
-  byte data_to_send[] = {(byte)red_float, (byte)green_float, (byte)blue_float};
+  
+  byte[] data_to_send;
+  
+  if (useSingleByteMode) {
+    if (debug) {
+      println("-sending single byte: " + singleCharValue);
+    }
+    data_to_send = new byte[1];
+    data_to_send[0] = (byte)singleCharValue;
+    
+  } else {
+    
+    //Multiply each colour value with the multiplier
+    float red_float = (float)redValue * multiplier;
+    float green_float = (float)greenValue * multiplier;
+    float blue_float = (float)blueValue * multiplier;  
+    if (debug) {
+      println("-sending LED data:", red_float, green_float, blue_float);
+    }
+    
+    //Create an array of bytes that stores the colour values
+    data_to_send = new byte[3];
+    data_to_send[0] = (byte)red_float;
+    data_to_send[1] = (byte)green_float;
+    data_to_send[2] = (byte)blue_float;
+  }
 
   //Send the new colour values to the Particle device
-  println("-sending LED data:", red_float, green_float, blue_float);
   for (int i=0; i < particleDevices.length; i++) {
     udp.send(data_to_send, particleDevices[i], udpPort);
   }
 }
 
 private void setLEDBlack() {
-  setLED(0, 0, 0);
+  setLED(blackLED);
 }
 
 private void setLEDReady() {
-  setLED(standbyLED.redValue, standbyLED.blueValue, standbyLED.greenValue);
+  setLED(standbyLED);
 }
 
-private void setLED(int red, int green, int blue) {
-  redValue = red;
-  greenValue = green;
-  blueValue = blue;
+private void setLED(LEDSignal ledSignal) {
+  if (useSingleByteMode) {
+    singleCharValue = ledSignal.alias;
+  } else {
+    redValue = ledSignal.redValue;
+    greenValue = ledSignal.greenValue;
+    blueValue = ledSignal.blueValue;
+  }
+  
 }

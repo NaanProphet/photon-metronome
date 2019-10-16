@@ -60,17 +60,55 @@ void loop()
     // Check if data has been received on the UDP port
     if (Udp.parsePacket() > 0)
     {
-        // Read the first byte of data received.
-        // This is the LED red value.
-        char red = Udp.read();
+        char red, green, blue;
+        int count = Udp.available();
+        Serial.println("Received num bytes: " + count);
+        
+        if (count == 1) {
+            // Single byte performance mode
+            char alias = Udp.read();
+            switch (alias) {
+                case 'A':
+                    red = 0;
+                    green = 255;
+                    blue = 0;
+                    break;
+                case 'B':
+                    red = 255;
+                    green = 255;
+                    blue = 0;
+                    break;
+                case 'C':
+                    red = 255;
+                    green = 0;
+                    blue = 0;
+                    break;
+                case 'S':
+                    red = 255;
+                    green = 255;
+                    blue = 255;
+                    break;
+                case 'Z':
+                    red = 0;
+                    green = 0;
+                    blue = 0;
+                    break;
+                default:
+                    Serial.println("ERROR unknown single byte received: " + alias);
+            }
+        } else {
+            // Read the first byte of data received.
+            // This is the LED red value.
+            red = Udp.read();
 
-        // Read the second byte of data received.
-        // This is the LED green value.
-        char green = Udp.read();
+            // Read the second byte of data received.
+            // This is the LED green value.
+            green = Udp.read();
 
-        // Read the third byte of data received.
-        // This is the LED blue value.
-        char blue = Udp.read();
+            // Read the third byte of data received.
+            // This is the LED blue value.
+            blue = Udp.read();
+        }
 
         // Ignore other bytes of data received
         Udp.flush();

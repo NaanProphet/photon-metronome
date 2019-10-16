@@ -5,3 +5,4 @@ src/photon_metronome/application.macosx
 staging/Photon Metronome/*
 !staging/Photon Metronome/GitHub Page.webloc
 staging/*.dmg
+src/libs/udp/*
