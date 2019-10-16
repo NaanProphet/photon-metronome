@@ -1,4 +1,4 @@
-//This application listens for MIDI Clock and CC messages on its //<>//
+//This application listens for MIDI Clock and CC messages on its //<>// //<>//
 //MIDI input, and uses them to send UDP messages to a Particle
 //board to set the colour and brightness of the onboard RGB LED.
 
@@ -16,10 +16,10 @@
 // 0.1-alpha.2 - add config file import. CC 123 now resets LED back. GUI updated
 // 0.1-alpha.3 - config file improved, RGB colors now injectable via JSON
 // 0.1-alpha.4 - refactored MIDI CC conditionals to strategy pattern, for easier scaling
-// 0.1 - MIDI CC multiplier support based on envelope
-// 0.2 - support for multiple Photon devices
-// 0.3-beta.1 - simplifying config property key names and improving error handling
-String version = "0.3-beta.1";
+// 0.1-beta.1 - MIDI CC multiplier support based on envelope
+// 0.1-beta.2 - support for multiple Photon devices
+// 0.1-beta.3 - simplifying config property key names and improving error handling
+String version = "0.1-beta.3";
 
 //Import the MidiBus library
 import themidibus.*;
@@ -132,7 +132,7 @@ void setup()
   standbyLED = parseLEDValues(parseJSONObject(parsedConfig.get(KEY_STANDBY_LED_COLOR)));
   useMultiplier = new Boolean(parsedConfig.get(KEY_USE_CC_MULTIPLIER)).booleanValue();
 
-  for (String key : parsedConfig.keySet()) { //<>//
+  for (String key : parsedConfig.keySet()) { //<>// //<>//
     if (key.startsWith(MIDI_CC_PROP_NAME_PREFIX)) {
       JSONObject ccConfig = parseJSONObject(parsedConfig.get(key));
       byte ccType = (byte) ccConfig.getInt("ccValue");
@@ -232,7 +232,7 @@ void draw()
   text ("MIDI Photon Metronome", width * 0.5, 50);
   
   textSize(16);
-  text ("version: " + version, width * .75, 275);
+  text ("version " + version, width * 0.5, 75);
   
   if (startupErrors.length() != 0) {
     fill(255, 0, 0);
@@ -240,7 +240,7 @@ void draw()
     text (startupErrors, 0, 0, 300, 300);
   } else {
     int rowSpacing = 25;
-    int rowPos = 120;
+    int rowPos = 140;
     text ("MIDI Sync Input Device: " + midiInput, width * 0.5, rowPos);
     for (int i=0; i < particleDevices.length; i++) {
       rowPos += rowSpacing;

@@ -8,7 +8,7 @@ RAW_NAME="photon_metronome"
 APP="${DIR}/application.macosx/${RAW_NAME}.app"
 CONFIG="config.properties"
 PLIST="${APP}/Contents/Info.plist"
-VERSION='0.7'
+VERSION='0.1-beta.3'
 COPYRIGHT='Copyright © 2019 Krishna Bhamidipati. All rights reserved.'
 CERT_IDENITY="Developer ID Application: Krishna Bhamidipati (V2H2HR4VR9)"
 
