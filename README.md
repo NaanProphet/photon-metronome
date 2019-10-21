@@ -95,7 +95,8 @@ More detailed information about flashing firmware using DFU (Disk Firmware Updat
 If you brick the photon:
 * Boot into DFU mode and use dfu-util method following this guide: https://docs.particle.io/faq/particle-devices/led-troubleshooting/photon/#manual-firmware-update
 * If the device is still flashing yellow after restarting, then issue the command `particle update`
-* If the `photon_metronome` program is not loading, try lauching it from Terminal to see the console output (Show Package Contents > `MacOS` > `photon_metronome`)
+* If the `photon_metronome` program is not loading, try launching it from Terminal to see the console output (Show Package Contents > `MacOS` > `photon_metronome`)
+* If are trying to connect via DFU mode and are sure the device is working, double check the data pins in the cable are working by trying a new USB cable
 
 ## Virtual MIDI Device Setup (Mac + Ableton)
 

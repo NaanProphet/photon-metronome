@@ -5,6 +5,8 @@ SYSTEM_MODE(SEMI_AUTOMATIC);
 unsigned int udpPort = 12348;
 // A UDP instance to let us receive data/packets over UDP
 UDP Udp;
+// Enable/disable debug console output
+boolean debug = false;
 
 //====================================================================
 //The setup function.
@@ -60,10 +62,12 @@ void loop()
     // Check if data has been received on the UDP port
     if (Udp.parsePacket() > 0)
     {
-        char red, green, blue;
+        unsigned char red, green, blue = 0;
         int count = Udp.available();
-        Serial.println("Received num bytes: " + count);
-        
+        if (debug) {
+          Serial.println(count + "b");
+        }
+
         if (count == 1) {
             // Single byte performance mode
             char alias = Udp.read();
@@ -94,7 +98,9 @@ void loop()
                     blue = 0;
                     break;
                 default:
-                    Serial.println("ERROR unknown single byte received: " + alias);
+                    if (debug) {
+                      Serial.println("ERROR unknown command [" + (String) alias + "]");
+                    }
             }
         } else {
             // Read the first byte of data received.
